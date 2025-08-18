@@ -245,8 +245,22 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """User dashboard"""
-    return render_template('dashboard.html')
+    """User dashboard with cards and QR sharing"""
+    try:
+        cards = list(mongo.db.cards.find({'user_id': ObjectId(request.user_id)}))
+        for card in cards:
+            card['_id'] = str(card['_id'])
+            card['user_id'] = str(card['user_id'])
+            # Add photo_url as data URL if photo_base64 exists
+            if card.get('photo_base64'):
+                card['photo_url'] = f"data:image/jpeg;base64,{card['photo_base64']}"
+            # Ensure qr_code and qr_url are present for sharing
+            card['qr_code'] = card.get('qr_code')
+            card['qr_url'] = card.get('qr_url', f"{app.config['BASE_URL']}/ar/{card['card_id']}")
+        return render_template('dashboard.html', cards=cards)
+    except Exception as e:
+        logger.error(f"Dashboard error: {str(e)}")
+        return render_template('error.html', error=str(e)), 500
 
 @app.route('/api/profile', methods=['GET'])
 @login_required
@@ -539,20 +553,6 @@ def download_qr_code(card_id):
     except Exception as e:
         logger.error(f"QR code download error: {str(e)}")
         return jsonify({'error': 'Failed to download QR code'}), 500
-
-@app.route('/share/<card_id>')
-def share_card(card_id):
-    """Public share page for a card, shows QR and link"""
-    try:
-        card = mongo.db.cards.find_one({'card_id': card_id, 'is_active': True})
-        if not card:
-            return render_template('card_not_found.html'), 404
-        qr_url = card.get('qr_url', f"{app.config['BASE_URL']}/ar/{card_id}")
-        qr_code = card.get('qr_code')
-        return render_template('share.html', qr_url=qr_url, qr_code=qr_code, card_id=card_id)
-    except Exception as e:
-        logger.error(f"Share page error: {str(e)}")
-        return render_template('error.html', error=str(e)), 500
 
 @app.errorhandler(404)
 def not_found_error(error):
