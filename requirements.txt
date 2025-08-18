@@ -1,0 +1,9 @@
+Flask
+flask_pymongo
+pymongo
+Werkzeug
+PyJWT
+qrcode
+pillow
+python-dotenv
+flask-cors

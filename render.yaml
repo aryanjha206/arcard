@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ar-card-system
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGO_URI
+        sync: false
