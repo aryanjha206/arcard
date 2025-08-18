@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Login - AR Card System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card p-5 shadow-lg">
+            <h2 class="text-center text-white mb-4 fw-bold">
+                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+            </h2>
+            <form id="loginForm" autocomplete="off">
+                <div class="mb-3 input-group">
+                    <span class="input-group-text bg-transparent text-white"><i class="fas fa-user"></i></span>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Username or Email" required autocomplete="off">
+                </div>
+                <div class="mb-4 input-group">
+                    <span class="input-group-text bg-transparent text-white"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+                </div>
+                <div class="d-grid mb-2">
+                    <button type="submit" class="btn btn-custom btn-lg" id="loginBtn">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </button>
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                <p class="text-white mb-0">
+                    Don't have an account?
+                    <a href="/register" class="text-warning fw-semibold">Register here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const loginBtn = document.getElementById('loginBtn');
+    loginBtn.disabled = true;
+    const formData = {
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value
+    };
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        if (response.ok) {
+            showAlert('Login successful!', 'success');
+            setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+        } else {
+            showAlert(result.error || 'Login failed', 'danger');
+        }
+    } catch (error) {
+        showAlert('Network error. Please try again.', 'danger');
+    }
+    loginBtn.disabled = false;
+});
+</script>
+{% endblock %}

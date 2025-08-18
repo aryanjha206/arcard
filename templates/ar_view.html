@@ -1,0 +1,597 @@
+<!-- AR View Template (templates/ar_view.html) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Business Card</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            color: white;
+        }
+        
+        #ar-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 18px;
+            z-index: 50;
+        }
+        
+        .control-btn {
+            background: rgba(0, 0, 0, 0.82);
+            border: 2px solid rgba(255,255,255,0.18);
+            color: white;
+            padding: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .control-btn:hover {
+            background: rgba(32, 201, 151, 0.18);
+            color: #20c997;
+            transform: scale(1.12);
+        }
+        
+        #error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(220, 53, 69, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            z-index: 100;
+        }
+        
+        @media (max-width: 768px) {
+            #ar-info {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 14px;
+                max-width: 98vw;
+            }
+            
+            .profile-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .profile-img, .profile-placeholder {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            
+            .contact-links {
+                justify-content: center;
+            }
+            
+            #controls {
+                bottom: 10px;
+                gap: 10px;
+            }
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="ar-container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Loading AR Experience...</p>
+        </div>
+        
+        <div id="error-message" style="display: none;">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h3>Card Not Found</h3>
+            <p>The requested AR card could not be loaded.</p>
+        </div>
+        
+        <div id="controls">
+            <button class="control-btn" onclick="resetView()" title="Reset View">
+                <i class="fas fa-redo"></i>
+            </button>
+            <button class="control-btn" onclick="toggleAnimation()" title="Toggle Animation">
+                <i class="fas fa-play" id="anim-icon"></i>
+            </button>
+        </div>
+    </div>
+    <script>
+        let scene, camera, renderer, card, cardData, cardTexture, cardCanvas, cardCtx;
+        let isAnimating = true;
+        let iconRegions = [];
+
+        const cardId = window.location.pathname.split('/').pop();
+
+        async function loadCardData() {
+            try {
+                const response = await fetch(`/api/ar/${cardId}`);
+                if (!response.ok) throw new Error('Card not found');
+                cardData = await response.json();
+                // Only draw card if Three.js is ready
+                if (cardTexture && cardCanvas && cardCtx) {
+                    drawCardInfoOnCanvas(cardData);
+                    cardTexture.needsUpdate = true;
+                }
+                hideLoading();
+            } catch (error) {
+                showError();
+            }
+        }
+
+        function createARCard() {
+            card = new THREE.Group();
+            const cardGeometry = new THREE.BoxGeometry(3.5, 2, 0.08);
+            cardCanvas = document.createElement('canvas');
+            cardCanvas.width = 1050;
+            cardCanvas.height = 600;
+            cardCtx = cardCanvas.getContext('2d');
+            drawCardBackground(cardCtx, cardCanvas.width, cardCanvas.height);
+            // Only draw info if cardData is already loaded
+            if (cardData) drawCardInfoOnCanvas(cardData);
+            cardTexture = new THREE.CanvasTexture(cardCanvas);
+            cardTexture.wrapS = THREE.ClampToEdgeWrapping;
+            cardTexture.wrapT = THREE.ClampToEdgeWrapping;
+            const materials = [
+                new THREE.MeshPhongMaterial({ color: 0x222244 }),
+                new THREE.MeshPhongMaterial({ color: 0x222244 }),
+                new THREE.MeshPhongMaterial({ color: 0x222244 }),
+                new THREE.MeshPhongMaterial({ color: 0x222244 }),
+                new THREE.MeshPhongMaterial({ map: cardTexture, shininess: 100, specular: 0x222222 }),
+                new THREE.MeshPhongMaterial({ map: cardTexture, shininess: 100, specular: 0x222222 })
+            ];
+            const cardMesh = new THREE.Mesh(cardGeometry, materials);
+            card.add(cardMesh);
+            // Hologram overlay
+            const hologramGeometry = new THREE.PlaneGeometry(3.6, 2.1);
+            const hologramMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.05,
+                side: THREE.DoubleSide
+            });
+            const hologram = new THREE.Mesh(hologramGeometry, hologramMaterial);
+            hologram.position.z = 0.05;
+            card.add(hologram);
+            card.position.set(0, 0, 0);
+            scene.add(card);
+
+            renderer.domElement.addEventListener('click', handleCanvasClick);
+        }
+
+        function drawCardBackground(ctx, w, h) {
+            // White card with rounded corners and shadow
+            ctx.clearRect(0, 0, w, h);
+            ctx.save();
+            ctx.shadowColor = "rgba(60,60,60,0.18)";
+            ctx.shadowBlur = 32;
+            ctx.beginPath();
+            roundRect(ctx, 0, 0, w, h, 48);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // Accent gradient stripe (optional)
+            const grad = ctx.createLinearGradient(0, 0, w, 0);
+            grad.addColorStop(0, "#6f42c1");
+            grad.addColorStop(1, "#20c997");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, 16);
+
+            // Subtle bottom line
+            ctx.fillStyle = "#ececec";
+            ctx.fillRect(0, h - 18, w, 18);
+        }
+
+        // Helper for rounded rectangle
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+        }
+
+        function drawCardInfoOnCanvas(data) {
+            drawCardBackground(cardCtx, cardCanvas.width, cardCanvas.height);
+            iconRegions = [];
+
+            // Layout constants
+            const margin = 40;
+            const photoSize = 120;
+            const infoX = margin + photoSize + 32;
+            const infoY = margin + 10;
+            const lineGap = 44;
+
+            // Draw profile photo or fallback
+            if (data.photo_url) {
+                const img = new window.Image();
+                img.onload = function() {
+                    cardCtx.save();
+                    cardCtx.beginPath();
+                    cardCtx.arc(margin + photoSize/2, margin + photoSize/2, photoSize/2, 0, Math.PI * 2);
+                    cardCtx.closePath();
+                    cardCtx.clip();
+                    cardCtx.drawImage(img, margin, margin, photoSize, photoSize);
+                    cardCtx.restore();
+                    drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize);
+                    cardTexture.needsUpdate = true;
+                };
+                img.onerror = function() {
+                    drawFallbackInitial(data, margin, photoSize);
+                    drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize);
+                    cardTexture.needsUpdate = true;
+                };
+                img.src = data.photo_url;
+            } else {
+                drawFallbackInitial(data, margin, photoSize);
+                drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize);
+                cardTexture.needsUpdate = true;
+            }
+        }
+
+        function drawFallbackInitial(data, margin, photoSize) {
+            cardCtx.save();
+            cardCtx.beginPath();
+            cardCtx.arc(margin + photoSize/2, margin + photoSize/2, photoSize/2, 0, Math.PI * 2);
+            cardCtx.closePath();
+            cardCtx.fillStyle = "#6f42c1";
+            cardCtx.fill();
+            cardCtx.font = "bold 56px Segoe UI, Arial";
+            cardCtx.fillStyle = "#fff";
+            cardCtx.textAlign = "center";
+            cardCtx.textBaseline = "middle";
+            cardCtx.fillText(data.name ? data.name[0].toUpperCase() : "?", margin + photoSize/2, margin + photoSize/2);
+            cardCtx.restore();
+        }
+
+        function drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize) {
+            // Name
+            cardCtx.font = "bold 38px Segoe UI, Arial";
+            cardCtx.fillStyle = "#222";
+            cardCtx.textAlign = "left";
+            cardCtx.fillText(data.name || "", infoX, infoY + 8);
+
+            // Title
+            cardCtx.font = "italic 24px Segoe UI, Arial";
+            cardCtx.fillStyle = "#6f42c1";
+            cardCtx.fillText(data.title || "", infoX, infoY + lineGap);
+
+            // Company
+            cardCtx.font = "22px Segoe UI, Arial";
+            cardCtx.fillStyle = "#20c997";
+            cardCtx.fillText(data.company || "", infoX, infoY + lineGap * 2);
+
+            // Divider line
+            cardCtx.strokeStyle = "#ececec";
+            cardCtx.lineWidth = 2;
+            cardCtx.beginPath();
+            cardCtx.moveTo(margin, margin + photoSize + 24);
+            cardCtx.lineTo(cardCanvas.width - margin, margin + photoSize + 24);
+            cardCtx.stroke();
+
+            // Bio/description (centered under divider)
+            let bioY = margin + photoSize + 60;
+            if (data.bio) {
+                cardCtx.font = "italic 20px Segoe UI, Arial";
+                cardCtx.fillStyle = "#444";
+                cardCtx.textAlign = "center";
+                wrapText(cardCtx, data.bio, cardCanvas.width/2, bioY, cardCanvas.width - 2*margin, 26, "center");
+                bioY += 60;
+            }
+
+            // Draw clickable icons (links) at the bottom, centered
+            let iconSize = 38, gap = 70;
+            let icons = [];
+            if (data.email) icons.push({type: "envelope", value: data.email, label: "Email"});
+            if (data.phone) icons.push({type: "phone", value: data.phone, label: "Call"});
+            if (data.website) icons.push({type: "globe", value: data.website, label: "Website"});
+            if (data.linkedin) icons.push({type: "linkedin", value: data.linkedin, label: "LinkedIn"});
+            let totalWidth = icons.length * iconSize + (icons.length - 1) * gap;
+            let startX = (cardCanvas.width - totalWidth) / 2;
+            let iconY = cardCanvas.height - 90;
+            iconRegions = [];
+            icons.forEach((icon, i) => {
+                let x = startX + i * (iconSize + gap);
+                drawIcon(cardCtx, icon.type, x, iconY, iconSize, "#20c997");
+                iconRegions.push({type: icon.type, x: x, y: iconY, size: iconSize, value: icon.value});
+                // Label
+                cardCtx.font = "16px Segoe UI, Arial";
+                cardCtx.fillStyle = "#444";
+                cardCtx.textAlign = "center";
+                cardCtx.fillText(icon.label, x + iconSize/2, iconY + iconSize + 18);
+            });
+        }
+
+        // Draw a simple icon using emoji or fallback text (for simplicity)
+        function drawIcon(ctx, type, x, y, size, color) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.font = "bold 28px Segoe UI, Arial";
+            ctx.fillStyle = color;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            let iconChar = "?";
+            if (type === "envelope") iconChar = "✉";
+            if (type === "phone") iconChar = "☎";
+            if (type === "globe") iconChar = "🌐";
+            if (type === "linkedin") iconChar = "in";
+            ctx.fillText(iconChar, x + size/2, y + size/2 + 2);
+            ctx.restore();
+        }
+
+        // Update wrapText to support center alignment
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = "left") {
+            if (!text) return;
+            const words = text.split(' ');
+            let line = '';
+            ctx.textAlign = align;
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    ctx.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, y);
+        }
+
+        // Handle click on canvas icons
+        function handleCanvasClick(event) {
+            // Get mouse position relative to canvas
+            const rect = renderer.domElement.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            // Project mouse to canvas coordinates
+            // The card is centered and fills most of the screen, so we map the mouse to the card face
+            // We'll use raycasting to check if the card was clicked and get the UV coordinates
+            const mouse = {
+                x: (event.clientX / rect.width) * 2 - 1,
+                y: -(event.clientY / rect.height) * 2 + 1
+            };
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(card.children, false);
+            if (intersects.length > 0) {
+                const uv = intersects[0].uv;
+                if (!uv) return;
+                // Convert UV to canvas coordinates
+                const canvasX = uv.x * cardCanvas.width;
+                const canvasY = (1 - uv.y) * cardCanvas.height;
+                // Check if click is inside any icon region
+                for (const region of iconRegions) {
+                    if (
+                        canvasX >= region.x &&
+                        canvasX <= region.x + region.size &&
+                        canvasY >= region.y &&
+                        canvasY <= region.y + region.size
+                    ) {
+                        // Open corresponding link
+                        if (region.type === "email") {
+                            window.open(`mailto:${region.value}`, "_blank");
+                        } else if (region.type === "phone") {
+                            window.open(`tel:${region.value}`, "_blank");
+                        } else if (region.type === "website") {
+                            window.open(region.value, "_blank");
+                        } else if (region.type === "linkedin") {
+                            window.open(region.value, "_blank");
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        function init3D() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = null; // Transparent background
+            
+            // Create camera
+            // Make the FOV a bit smaller for a more immersive, close-up look
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 4.2; // Move camera closer to fill the screen
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            document.getElementById('ar-container').appendChild(renderer.domElement);
+            
+            // Create card geometry and materials
+            createARCard();
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Remove floating particles for a clean background
+            // createParticles(); <-- REMOVE THIS LINE
+            
+            // Start animation loop
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Add touch/mouse interactions
+            addInteractions();
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isAnimating && card) {
+                // Subtle rotation only
+                card.rotation.y += 0.003;
+                card.rotation.x = Math.sin(Date.now() * 0.001) * 0.04;
+                // No particles animation
+                card.position.y = 0;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function addInteractions() {
+            let isMouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            let previousMouseX = 0, previousMouseY = 0;
+            
+            // Mouse events
+            renderer.domElement.addEventListener('mousedown', (event) => {
+                isMouseDown = true;
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (event) => {
+                if (isMouseDown && card) {
+                    const deltaX = event.clientX - mouseX;
+                    const deltaY = event.clientY - mouseY;
+                    
+                    card.rotation.y += deltaX * 0.01;
+                    card.rotation.x += deltaY * 0.01;
+                    
+                    mouseX = event.clientX;
+                    mouseY = event.clientY;
+                }
+            });
+            
+            // Touch events for mobile
+            renderer.domElement.addEventListener('touchstart', (event) => {
+                if (event.touches.length === 1) {
+                    isMouseDown = true;
+                    mouseX = event.touches[0].clientX;
+                    mouseY = event.touches[0].clientY;
+                }
+            });
+            
+            renderer.domElement.addEventListener('touchend', () => {
+                isMouseDown = false;
+            });
+            
+            renderer.domElement.addEventListener('touchmove', (event) => {
+                if (isMouseDown && event.touches.length === 1 && card) {
+                    const deltaX = event.touches[0].clientX - mouseX;
+                    const deltaY = event.touches[0].clientY - mouseY;
+                    
+                    card.rotation.y += deltaX * 0.01;
+                    card.rotation.x += deltaY * 0.01;
+                    
+                    mouseX = event.touches[0].clientX;
+                    mouseY = event.touches[0].clientY;
+                    
+                    event.preventDefault();
+                }
+            });
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function resetView() {
+            if (card) {
+                card.rotation.set(0, 0, 0);
+                card.position.set(0, 0, 0);
+                camera.position.set(0, 0, 5);
+            }
+        }
+        
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            const icon = document.getElementById('anim-icon');
+            icon.className = isAnimating ? 'fas fa-pause' : 'fas fa-play';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-message').style.display = 'block';
+        }
+        
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCardData();
+            init3D();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Register - AR Card System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card p-5 shadow-lg">
+            <h2 class="text-center text-white mb-4 fw-bold">
+                <i class="fas fa-user-plus me-2"></i>Create Account
+            </h2>
+            <form id="registerForm" autocomplete="off">
+                <div class="mb-3 input-group">
+                    <span class="input-group-text bg-transparent text-white"><i class="fas fa-user"></i></span>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Username" required autocomplete="off">
+                </div>
+                <div class="mb-3 input-group">
+                    <span class="input-group-text bg-transparent text-white"><i class="fas fa-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Email" required autocomplete="off">
+                </div>
+                <div class="mb-3 input-group">
+                    <span class="input-group-text bg-transparent text-white"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required autocomplete="new-password">
+                </div>
+                <div class="mb-4 input-group">
+                    <span class="input-group-text bg-transparent text-white"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required autocomplete="new-password">
+                </div>
+                <div class="d-grid mb-2">
+                    <button type="submit" class="btn btn-custom btn-lg" id="registerBtn">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                <p class="text-white mb-0">
+                    Already have an account?
+                    <a href="/login" class="text-warning fw-semibold">Sign in here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const registerBtn = document.getElementById('registerBtn');
+    registerBtn.disabled = true;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    if (password !== confirmPassword) {
+        showAlert('Passwords do not match', 'danger');
+        registerBtn.disabled = false;
+        return;
+    }
+    const formData = {
+        username: document.getElementById('username').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: password
+    };
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        if (response.ok) {
+            showAlert('Account created successfully!', 'success');
+            setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+        } else {
+            showAlert(result.error || 'Registration failed', 'danger');
+        }
+    } catch (error) {
+        showAlert('Network error. Please try again.', 'danger');
+    }
+    registerBtn.disabled = false;
+});
+</script>
+{% endblock %}
