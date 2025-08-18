@@ -319,6 +319,19 @@
             cardCtx.fillStyle = "#4b5c6b";
             cardCtx.fillText(data.company || "", infoX, infoY + lineGap * 2);
 
+            // --- Show email, phone, website, linkedin as text if present ---
+            let contactY = infoY + lineGap * 3 + 4;
+            cardCtx.font = "13px Segoe UI, Arial";
+            cardCtx.fillStyle = "#b0b8c1";
+            let contactFields = [];
+            if (data.email) contactFields.push({ label: "Email", value: data.email });
+            if (data.phone) contactFields.push({ label: "Phone", value: data.phone });
+            if (data.website) contactFields.push({ label: "Website", value: data.website });
+            if (data.linkedin) contactFields.push({ label: "LinkedIn", value: data.linkedin });
+            contactFields.forEach((field, idx) => {
+                cardCtx.fillText(`${field.label}: ${field.value}`, infoX, contactY + idx * 18);
+            });
+
             // Divider line
             cardCtx.strokeStyle = "#3a4250";
             cardCtx.lineWidth = 1.2;
