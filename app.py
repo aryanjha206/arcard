@@ -18,6 +18,7 @@ from bson.objectid import ObjectId
 from functools import wraps
 import logging
 from flask_cors import CORS
+from flask import make_response
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -518,16 +519,37 @@ def get_qr_code(card_id):
         logger.error(f"QR code fetch error: {str(e)}")
         return jsonify({'error': 'Failed to fetch QR code'}), 500
 
+@app.route('/api/qr/<card_id>/download')
+@login_required
+def download_qr_code(card_id):
+    """Download QR code image for a specific card"""
+    try:
+        card = mongo.db.cards.find_one({
+            'card_id': card_id,
+            'user_id': ObjectId(request.user_id)
+        })
+        if not card or not card.get('qr_code'):
+            return jsonify({'error': 'QR code not available'}), 404
+
+        qr_bytes = base64.b64decode(card['qr_code'])
+        response = make_response(qr_bytes)
+        response.headers.set('Content-Type', 'image/png')
+        response.headers.set('Content-Disposition', f'attachment; filename=qr_{card_id}.png')
+        return response
+    except Exception as e:
+        logger.error(f"QR code download error: {str(e)}")
+        return jsonify({'error': 'Failed to download QR code'}), 500
+
 @app.route('/share/<card_id>')
 def share_card(card_id):
-    """Public share page for a card"""
+    """Public share page for a card, shows QR and link"""
     try:
         card = mongo.db.cards.find_one({'card_id': card_id, 'is_active': True})
-        
         if not card:
             return render_template('card_not_found.html'), 404
-        
-        return render_template('share.html')
+        qr_url = card.get('qr_url', f"{app.config['BASE_URL']}/ar/{card_id}")
+        qr_code = card.get('qr_code')
+        return render_template('share.html', qr_url=qr_url, qr_code=qr_code, card_id=card_id)
     except Exception as e:
         logger.error(f"Share page error: {str(e)}")
         return render_template('error.html', error=str(e)), 500
