@@ -159,72 +159,43 @@
     </div>
 </div>
 
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-qrcode me-2"></i>QR Code
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="qr-container">
+                    <img id="qrCodeImage" src="" alt="QR Code" class="img-fluid mb-3">
+                    <p id="qrUrl" class="mb-3"></p>
+                    <button class="btn btn-custom me-2" onclick="shareQRCode()">
+                        <i class="fas fa-share-alt me-2"></i>Share QR Code
+                    </button>
+                    <button class="btn btn-success" id="downloadQrBtn" onclick="downloadQRCode()" style="display:none;">
+                        <i class="fas fa-download me-2"></i>Download QR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="floating-action">
     <button class="btn btn-custom btn-lg" data-bs-toggle="modal" data-bs-target="#createCardModal">
         <i class="fas fa-plus"></i>
     </button>
 </div>
-
-{% for card in cards %}
-<div class="card">
-    <div class="card-header">
-        <h5 class="card-title">{{ card.name }}</h5>
-    </div>
-    <div class="card-body">
-        <p class="card-text">{{ card.bio }}</p>
-        {% if card.photo_url %}
-        <img src="{{ card.photo_url }}" alt="Profile Photo" class="img-fluid rounded-circle mb-3" style="width: 100px;">
-        {% endif %}
-        <div class="mb-3">
-            <a href="mailto:{{ card.email }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-envelope"></i> Email
-            </a>
-            <a href="tel:{{ card.phone }}" class="btn btn-success btn-sm">
-                <i class="fas fa-phone"></i> Call
-            </a>
-            <a href="{{ card.website }}" class="btn btn-info btn-sm" target="_blank">
-                <i class="fas fa-globe"></i> Website
-            </a>
-            <a href="{{ card.linkedin }}" class="btn btn-linkedin btn-sm" target="_blank">
-                <i class="fab fa-linkedin"></i> LinkedIn
-            </a>
-        </div>
-        {% if card.qr_code %}
-        <div class="qr-section">
-            <img class="qr-img" src="data:image/png;base64,{{ card.qr_code }}" alt="QR Code">
-            <a class="share-link" href="{{ card.qr_url }}" target="_blank">{{ card.qr_url }}</a>
-            <div>
-                <button class="btn" onclick="copyLink('{{ card.qr_url }}')">Copy Link</button>
-                <a class="btn" href="/api/qr/{{ card.card_id }}/download">Download QR</a>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    <div class="card-footer text-end">
-        <button class="btn btn-secondary btn-sm" onclick="editCard('{{ card.card_id }}')">
-            <i class="fas fa-edit"></i> Edit
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="deleteCard('{{ card.card_id }}')">
-            <i class="fas fa-trash"></i> Delete
-        </button>
-    </div>
-</div>
-{% endfor %}
-
-<script>
-function copyLink(link) {
-    navigator.clipboard.writeText(link).then(function() {
-        alert("Link copied to clipboard!");
-    }, function() {
-        alert("Failed to copy link.");
-    });
-}
-</script>
 {% endblock %}
 
 {% block scripts %}
 <script>
 let currentCards = [];
+let currentQrCardId = null;
 
 async function loadCards() {
     try {
@@ -352,6 +323,8 @@ async function showQRCode(cardId) {
             const result = await response.json();
             document.getElementById('qrCodeImage').src = 'data:image/png;base64,' + result.qr_code;
             document.getElementById('qrUrl').textContent = result.qr_url;
+            currentQrCardId = cardId;
+            document.getElementById('downloadQrBtn').style.display = 'inline-block';
             const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
             qrModal.show();
         } else {
@@ -364,6 +337,51 @@ async function showQRCode(cardId) {
 
 function previewAR(cardId) {
     window.open(`/ar/${cardId}`, '_blank');
+}
+
+function shareQRCode() {
+    const qrUrl = document.getElementById('qrUrl').textContent;
+    if (navigator.share) {
+        navigator.share({
+            title: 'My AR Business Card',
+            text: 'Check out my AR business card!',
+            url: qrUrl
+        });
+    } else {
+        navigator.clipboard.writeText(qrUrl).then(() => {
+            showAlert('QR code URL copied to clipboard!', 'success');
+        }).catch(() => {
+            const textArea = document.createElement('textarea');
+            textArea.value = qrUrl;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showAlert('QR code URL copied to clipboard!', 'success');
+        });
+    }
+}
+
+function downloadQRCode() {
+    if (!currentQrCardId) return;
+    fetch(`/api/qr/${currentQrCardId}/download`)
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to download QR');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qr_${currentQrCardId}.png`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
+        })
+        .catch(() => showAlert('Failed to download QR code', 'danger'));
 }
 
 async function deleteCard(cardId) {
