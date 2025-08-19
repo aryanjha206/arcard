@@ -365,36 +365,33 @@
             cardCtx.lineTo(cardCanvas.width - margin, margin + photoSize + 15);
             cardCtx.stroke();
 
-            // Bio section (before contact info)
+            // Bio section (auto-wrap and dynamic height)
             let currentY = margin + photoSize + 45;
             if (data.bio) {
                 cardCtx.font = "18px Segoe UI, Arial";
                 cardCtx.fillStyle = "#ffffff";
                 cardCtx.textAlign = "left";
-                cardCtx.fillText("Bio: " + data.bio, margin, currentY);
-                currentY += 32;
+                // Use wrapText to draw bio and get the new Y position after bio
+                currentY = drawWrappedText(cardCtx, "Bio: " + data.bio, margin, currentY, cardCanvas.width - margin * 2, 26);
+                currentY += 10; // extra space after bio
             }
 
             // Contact information with consistent formatting
             cardCtx.font = "18px Segoe UI, Arial";
             cardCtx.fillStyle = "#ffffff";
             cardCtx.textAlign = "left";
-            
             if (data.email) {
                 cardCtx.fillText("Email: " + data.email, margin, currentY);
                 currentY += 32;
             }
-            
             if (data.phone) {
                 cardCtx.fillText("Phone: " + data.phone, margin, currentY);
                 currentY += 32;
             }
-            
             if (data.website) {
                 cardCtx.fillText("Website: " + data.website, margin, currentY);
                 currentY += 32;
             }
-            
             if (data.linkedin) {
                 cardCtx.fillText("LinkedIn: " + data.linkedin, margin, currentY);
                 currentY += 32;
@@ -402,6 +399,27 @@
 
             // Draw interactive icons at the bottom
             drawInteractiveIcons(data);
+        }
+
+        // Helper to wrap text and return the Y position after the last line
+        function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let startY = y;
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    ctx.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, y);
+            return y + lineHeight; // Return the next Y position after the last line
         }
 
         function drawInteractiveIcons(data) {
