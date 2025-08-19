@@ -15,7 +15,7 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #23272f 0%, #3a4250 100%);
+            background: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 100%);
             overflow: hidden;
             color: #e9ecef;
         }
@@ -37,8 +37,8 @@
         }
         
         .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
+            border: 4px solid rgba(45, 140, 255, 0.3);
+            border-top: 4px solid #2d8cff;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -62,21 +62,23 @@
         }
         
         .control-btn {
-            background: rgba(34, 39, 47, 0.92);
-            border: 2px solid #4b5c6b;
-            color: #e9ecef;
+            background: rgba(45, 140, 255, 0.15);
+            border: 2px solid #2d8cff;
+            color: #2d8cff;
             padding: 14px;
             border-radius: 50%;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
             font-size: 1.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(45, 140, 255, 0.2);
+            backdrop-filter: blur(10px);
         }
         
         .control-btn:hover {
             background: #2d8cff;
             color: #fff;
             transform: scale(1.12);
+            box-shadow: 0 6px 20px rgba(45, 140, 255, 0.4);
         }
         
         #error-message {
@@ -89,41 +91,23 @@
             padding: 30px;
             border-radius: 15px;
             z-index: 100;
+            backdrop-filter: blur(10px);
         }
         
         @media (max-width: 768px) {
-            #ar-info {
-                top: 10px;
-                left: 10px;
-                right: 10px;
-                padding: 14px;
-                max-width: 98vw;
-            }
-            
-            .profile-section {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .profile-img, .profile-placeholder {
-                margin-right: 0;
-                margin-bottom: 10px;
-            }
-            
-            .contact-links {
-                justify-content: center;
-            }
-            
             #controls {
                 bottom: 10px;
                 gap: 10px;
             }
         }
 
-        /* Card shadow/glow for visibility */
+        /* Enhanced card glow effect */
         canvas {
-            box-shadow: 0 0 32px 8px #2d8cff88, 0 4px 32px 0 #000a;
-            border-radius: 24px;
+            box-shadow: 
+                0 0 60px 15px rgba(45, 140, 255, 0.3),
+                0 0 120px 30px rgba(45, 140, 255, 0.1),
+                0 8px 40px rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
             background: transparent;
         }
     </style>
@@ -176,38 +160,44 @@
 
         function createARCard() {
             card = new THREE.Group();
-            // Smaller card: 2.2 x 1.25 inches (still credit card ratio)
-            const cardGeometry = new THREE.BoxGeometry(2.2, 1.25, 0.06);
+            // Professional card size: 3.5 x 2.0 inches (standard business card ratio)
+            const cardGeometry = new THREE.BoxGeometry(3.5, 2.0, 0.08);
             cardCanvas = document.createElement('canvas');
-            cardCanvas.width = 600;
-            cardCanvas.height = 340;
+            cardCanvas.width = 800;
+            cardCanvas.height = 460;
             cardCtx = cardCanvas.getContext('2d');
+            
             drawCardBackground(cardCtx, cardCanvas.width, cardCanvas.height);
             if (cardData) drawCardInfoOnCanvas(cardData);
+            
             cardTexture = new THREE.CanvasTexture(cardCanvas);
             cardTexture.wrapS = THREE.ClampToEdgeWrapping;
             cardTexture.wrapT = THREE.ClampToEdgeWrapping;
+            
             const materials = [
-                new THREE.MeshPhongMaterial({ color: 0x23272f }),
-                new THREE.MeshPhongMaterial({ color: 0x23272f }),
-                new THREE.MeshPhongMaterial({ color: 0x23272f }),
-                new THREE.MeshPhongMaterial({ color: 0x23272f }),
-                new THREE.MeshPhongMaterial({ map: cardTexture, shininess: 120, specular: 0x2d8cff }),
-                new THREE.MeshPhongMaterial({ map: cardTexture, shininess: 120, specular: 0x2d8cff })
+                new THREE.MeshPhongMaterial({ color: 0x1a1f2e }),
+                new THREE.MeshPhongMaterial({ color: 0x1a1f2e }),
+                new THREE.MeshPhongMaterial({ color: 0x1a1f2e }),
+                new THREE.MeshPhongMaterial({ color: 0x1a1f2e }),
+                new THREE.MeshPhongMaterial({ map: cardTexture, shininess: 150, specular: 0x2d8cff }),
+                new THREE.MeshPhongMaterial({ map: cardTexture, shininess: 150, specular: 0x2d8cff })
             ];
+            
             const cardMesh = new THREE.Mesh(cardGeometry, materials);
             card.add(cardMesh);
-            // Hologram overlay
-            const hologramGeometry = new THREE.PlaneGeometry(2.25, 1.3);
+            
+            // Enhanced hologram overlay with better visibility
+            const hologramGeometry = new THREE.PlaneGeometry(3.55, 2.05);
             const hologramMaterial = new THREE.MeshBasicMaterial({
                 color: 0x2d8cff,
                 transparent: true,
-                opacity: 0.10,
+                opacity: 0.08,
                 side: THREE.DoubleSide
             });
             const hologram = new THREE.Mesh(hologramGeometry, hologramMaterial);
-            hologram.position.z = 0.04;
+            hologram.position.z = 0.045;
             card.add(hologram);
+            
             card.position.set(0, 0, 0);
             scene.add(card);
 
@@ -215,25 +205,40 @@
         }
 
         function drawCardBackground(ctx, w, h) {
-            // Professional dark card with rounded corners and subtle shadow
+            // Professional gradient background with enhanced visibility
             ctx.clearRect(0, 0, w, h);
             ctx.save();
+            
+            // Main card background with gradient
+            const gradient = ctx.createLinearGradient(0, 0, w, h);
+            gradient.addColorStop(0, '#1e2a3a');
+            gradient.addColorStop(0.5, '#0f1419');
+            gradient.addColorStop(1, '#1a1f2e');
+            
             ctx.shadowColor = "#2d8cff";
-            ctx.shadowBlur = 32;
+            ctx.shadowBlur = 20;
             ctx.beginPath();
-            roundRect(ctx, 0, 0, w, h, 28);
-            ctx.fillStyle = "#23272f";
+            roundRect(ctx, 0, 0, w, h, 20);
+            ctx.fillStyle = gradient;
             ctx.fill();
             ctx.shadowBlur = 0;
             ctx.restore();
 
-            // Accent stripe (blue)
-            ctx.fillStyle = "#2d8cff";
-            ctx.fillRect(0, 0, w, 8);
+            // Professional accent stripe (top)
+            const accentGradient = ctx.createLinearGradient(0, 0, w, 0);
+            accentGradient.addColorStop(0, '#2d8cff');
+            accentGradient.addColorStop(0.5, '#4da6ff');
+            accentGradient.addColorStop(1, '#2d8cff');
+            ctx.fillStyle = accentGradient;
+            ctx.fillRect(0, 0, w, 6);
 
-            // Subtle bottom line
-            ctx.fillStyle = "#3a4250";
-            ctx.fillRect(0, h - 8, w, 8);
+            // Subtle pattern overlay for texture
+            ctx.fillStyle = 'rgba(45, 140, 255, 0.03)';
+            for (let i = 0; i < w; i += 40) {
+                for (let j = 0; j < h; j += 40) {
+                    ctx.fillRect(i, j, 20, 20);
+                }
+            }
         }
 
         // Helper for rounded rectangle
@@ -253,198 +258,234 @@
             drawCardBackground(cardCtx, cardCanvas.width, cardCanvas.height);
             iconRegions = [];
 
-            // Layout constants (smaller)
-            const margin = 18;
-            const photoSize = 54;
-            const infoX = margin + photoSize + 18;
-            const infoY = margin + 4;
-            const lineGap = 26;
+            // Enhanced layout constants
+            const margin = 25;
+            const photoSize = 80;
+            const infoX = margin + photoSize + 25;
+            const infoY = margin + 15;
+            const lineHeight = 28;
 
-            // Draw profile photo or fallback
+            // Draw profile photo or fallback with better styling
             if (data.photo_url) {
                 const img = new window.Image();
                 img.onload = function() {
                     cardCtx.save();
+                    // Photo border/shadow
+                    cardCtx.shadowColor = "#2d8cff";
+                    cardCtx.shadowBlur = 10;
+                    cardCtx.beginPath();
+                    cardCtx.arc(margin + photoSize/2, margin + photoSize/2, photoSize/2 + 2, 0, Math.PI * 2);
+                    cardCtx.fillStyle = "#2d8cff";
+                    cardCtx.fill();
+                    cardCtx.shadowBlur = 0;
+                    
                     cardCtx.beginPath();
                     cardCtx.arc(margin + photoSize/2, margin + photoSize/2, photoSize/2, 0, Math.PI * 2);
                     cardCtx.closePath();
                     cardCtx.clip();
                     cardCtx.drawImage(img, margin, margin, photoSize, photoSize);
                     cardCtx.restore();
-                    drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize);
+                    drawTextContent(data, infoX, infoY, lineHeight, margin, photoSize);
                     cardTexture.needsUpdate = true;
                 };
                 img.onerror = function() {
                     drawFallbackInitial(data, margin, photoSize);
-                    drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize);
+                    drawTextContent(data, infoX, infoY, lineHeight, margin, photoSize);
                     cardTexture.needsUpdate = true;
                 };
                 img.src = data.photo_url;
             } else {
                 drawFallbackInitial(data, margin, photoSize);
-                drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize);
+                drawTextContent(data, infoX, infoY, lineHeight, margin, photoSize);
                 cardTexture.needsUpdate = true;
             }
         }
 
         function drawFallbackInitial(data, margin, photoSize) {
             cardCtx.save();
+            // Enhanced fallback design
+            cardCtx.shadowColor = "#2d8cff";
+            cardCtx.shadowBlur = 10;
+            cardCtx.beginPath();
+            cardCtx.arc(margin + photoSize/2, margin + photoSize/2, photoSize/2 + 2, 0, Math.PI * 2);
+            cardCtx.fillStyle = "#2d8cff";
+            cardCtx.fill();
+            cardCtx.shadowBlur = 0;
+            
             cardCtx.beginPath();
             cardCtx.arc(margin + photoSize/2, margin + photoSize/2, photoSize/2, 0, Math.PI * 2);
             cardCtx.closePath();
-            cardCtx.fillStyle = "#2d8cff";
+            
+            const gradient = cardCtx.createRadialGradient(
+                margin + photoSize/2, margin + photoSize/2, 0,
+                margin + photoSize/2, margin + photoSize/2, photoSize/2
+            );
+            gradient.addColorStop(0, "#4da6ff");
+            gradient.addColorStop(1, "#2d8cff");
+            cardCtx.fillStyle = gradient;
             cardCtx.fill();
-            cardCtx.font = "bold 28px Segoe UI, Arial";
+            
+            cardCtx.font = "bold 36px Segoe UI, Arial";
             cardCtx.fillStyle = "#fff";
             cardCtx.textAlign = "center";
             cardCtx.textBaseline = "middle";
-            cardCtx.fillText(data.name ? data.name[0].toUpperCase() : "?", margin + photoSize/2, margin + photoSize/2);
+            cardCtx.fillText(
+                data.name ? data.name[0].toUpperCase() : "?", 
+                margin + photoSize/2, 
+                margin + photoSize/2
+            );
             cardCtx.restore();
         }
 
-        function drawTextAndIcons(data, infoX, infoY, lineGap, margin, photoSize) {
-            // Name
-            cardCtx.font = "bold 26px Segoe UI, Arial";
-            cardCtx.fillStyle = "#fff";
+        function drawTextContent(data, infoX, infoY, lineHeight, margin, photoSize) {
+            // Name with enhanced styling
+            cardCtx.font = "bold 32px Segoe UI, Arial";
+            cardCtx.fillStyle = "#ffffff";
             cardCtx.textAlign = "left";
-            cardCtx.fillText(data.name || "", infoX, infoY + 10);
+            cardCtx.shadowColor = "#2d8cff";
+            cardCtx.shadowBlur = 2;
+            cardCtx.fillText(data.name || "", infoX, infoY + 12);
+            cardCtx.shadowBlur = 0;
 
             // Title
-            cardCtx.font = "italic 18px Segoe UI, Arial";
-            cardCtx.fillStyle = "#2d8cff";
-            cardCtx.fillText(data.title || "", infoX, infoY + lineGap + 8);
+            cardCtx.font = "italic 22px Segoe UI, Arial";
+            cardCtx.fillStyle = "#4da6ff";
+            cardCtx.fillText(data.title || "", infoX, infoY + lineHeight + 16);
 
             // Company
-            cardCtx.font = "18px Segoe UI, Arial";
-            cardCtx.fillStyle = "#4b5c6b";
-            cardCtx.fillText(data.company || "", infoX, infoY + lineGap * 2 + 8);
-
-            // --- Show email, phone, website, linkedin as text if present ---
-            let contactY = infoY + lineGap * 3 + 24;
-            cardCtx.font = "bold 18px Segoe UI, Arial";
-            cardCtx.fillStyle = "#fff";
-            cardCtx.textAlign = "left";
-            let contactFields = [];
-            if (data.email) contactFields.push({ label: "Email", value: data.email });
-            if (data.phone) contactFields.push({ label: "Phone", value: data.phone });
-            if (data.website) contactFields.push({ label: "Website", value: data.website });
-            if (data.linkedin) contactFields.push({ label: "LinkedIn", value: data.linkedin });
-            // Draw each contact field, spread vertically, and use most of card width
-            contactFields.forEach((field, idx) => {
-                cardCtx.fillText(
-                    `${field.label}: ${field.value}`,
-                    margin,
-                    contactY + idx * 32 // more vertical space
-                );
-            });
+            cardCtx.font = "20px Segoe UI, Arial";
+            cardCtx.fillStyle = "#8bb3d9";
+            cardCtx.fillText(data.company || "", infoX, infoY + lineHeight * 2 + 16);
 
             // Divider line
             cardCtx.strokeStyle = "#2d8cff";
             cardCtx.lineWidth = 2;
             cardCtx.beginPath();
-            cardCtx.moveTo(margin, margin + photoSize + 10);
-            cardCtx.lineTo(cardCanvas.width - margin, margin + photoSize + 10);
+            cardCtx.moveTo(margin, margin + photoSize + 15);
+            cardCtx.lineTo(cardCanvas.width - margin, margin + photoSize + 15);
             cardCtx.stroke();
 
-            // Bio/description (centered under divider)
-            let bioY = margin + photoSize + 48;
+            // Bio section (before contact info)
+            let currentY = margin + photoSize + 45;
             if (data.bio) {
-                cardCtx.font = "italic 15px Segoe UI, Arial";
-                cardCtx.fillStyle = "#b0b8c1";
-                cardCtx.textAlign = "center";
-                wrapText(cardCtx, data.bio, cardCanvas.width/2, bioY, cardCanvas.width - 2*margin, 20, "center");
-                bioY += 28;
+                cardCtx.font = "18px Segoe UI, Arial";
+                cardCtx.fillStyle = "#ffffff";
+                cardCtx.textAlign = "left";
+                cardCtx.fillText("Bio: " + data.bio, margin, currentY);
+                currentY += 32;
             }
 
-            // Draw clickable icons (links) at the bottom, centered
-            let iconSize = 22, gap = 32;
+            // Contact information with consistent formatting
+            cardCtx.font = "18px Segoe UI, Arial";
+            cardCtx.fillStyle = "#ffffff";
+            cardCtx.textAlign = "left";
+            
+            if (data.email) {
+                cardCtx.fillText("Email: " + data.email, margin, currentY);
+                currentY += 32;
+            }
+            
+            if (data.phone) {
+                cardCtx.fillText("Phone: " + data.phone, margin, currentY);
+                currentY += 32;
+            }
+            
+            if (data.website) {
+                cardCtx.fillText("Website: " + data.website, margin, currentY);
+                currentY += 32;
+            }
+            
+            if (data.linkedin) {
+                cardCtx.fillText("LinkedIn: " + data.linkedin, margin, currentY);
+                currentY += 32;
+            }
+
+            // Draw interactive icons at the bottom
+            drawInteractiveIcons(data);
+        }
+
+        function drawInteractiveIcons(data) {
+            let iconSize = 28, gap = 45;
             let icons = [];
             if (data.email) icons.push({type: "envelope", value: data.email, label: "Email"});
             if (data.phone) icons.push({type: "phone", value: data.phone, label: "Call"});
             if (data.website) icons.push({type: "globe", value: data.website, label: "Website"});
             if (data.linkedin) icons.push({type: "linkedin", value: data.linkedin, label: "LinkedIn"});
+            
             let totalWidth = icons.length * iconSize + (icons.length - 1) * gap;
             let startX = (cardCanvas.width - totalWidth) / 2;
-            let iconY = cardCanvas.height - 42;
+            let iconY = cardCanvas.height - 65;
             iconRegions = [];
+            
             icons.forEach((icon, i) => {
                 let x = startX + i * (iconSize + gap);
-                drawIcon(cardCtx, icon.type, x, iconY, iconSize, "#2d8cff");
+                drawEnhancedIcon(cardCtx, icon.type, x, iconY, iconSize);
                 iconRegions.push({type: icon.type, x: x, y: iconY, size: iconSize, value: icon.value});
-                // Label
-                cardCtx.font = "bold 13px Segoe UI, Arial";
-                cardCtx.fillStyle = "#fff";
+                
+                // Icon label
+                cardCtx.font = "bold 14px Segoe UI, Arial";
+                cardCtx.fillStyle = "#4da6ff";
                 cardCtx.textAlign = "center";
-                cardCtx.fillText(icon.label, x + iconSize/2, iconY + iconSize + 14);
+                cardCtx.fillText(icon.label, x + iconSize/2, iconY + iconSize + 18);
             });
         }
 
-        function drawIcon(ctx, type, x, y, size, color) {
+        function drawEnhancedIcon(ctx, type, x, y, size) {
             ctx.save();
+            
+            // Icon background with glow
+            ctx.shadowColor = "#2d8cff";
+            ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
-            ctx.fillStyle = "#fff";
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 3;
+            
+            const gradient = ctx.createRadialGradient(
+                x + size/2, y + size/2, 0,
+                x + size/2, y + size/2, size/2
+            );
+            gradient.addColorStop(0, "#ffffff");
+            gradient.addColorStop(1, "#e8f4ff");
+            ctx.fillStyle = gradient;
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.font = "bold 12px Segoe UI, Arial";
-            ctx.fillStyle = color;
+            
+            // Icon symbol
+            ctx.font = "bold 14px FontAwesome, Segoe UI, Arial";
+            ctx.fillStyle = "#2d8cff";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
+            
             let iconChar = "?";
-            if (type === "envelope") iconChar = "✉";
-            if (type === "phone") iconChar = "☎";
-            if (type === "globe") iconChar = "🌐";
-            if (type === "linkedin") iconChar = "in";
+            switch(type) {
+                case "envelope": iconChar = "✉"; break;
+                case "phone": iconChar = "☎"; break;
+                case "globe": iconChar = "🌐"; break;
+                case "linkedin": iconChar = "in"; break;
+            }
+            
             ctx.fillText(iconChar, x + size/2, y + size/2 + 1);
             ctx.restore();
         }
 
-        // Update wrapText to support center alignment
-        function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = "left") {
-            if (!text) return;
-            const words = text.split(' ');
-            let line = '';
-            ctx.textAlign = align;
-            for (let n = 0; n < words.length; n++) {
-                const testLine = line + words[n] + ' ';
-                const metrics = ctx.measureText(testLine);
-                const testWidth = metrics.width;
-                if (testWidth > maxWidth && n > 0) {
-                    ctx.fillText(line, x, y);
-                    line = words[n] + ' ';
-                    y += lineHeight;
-                } else {
-                    line = testLine;
-                }
-            }
-            ctx.fillText(line, x, y);
-        }
-
         // Handle click on canvas icons
         function handleCanvasClick(event) {
-            // Get mouse position relative to canvas
             const rect = renderer.domElement.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-            // Project mouse to canvas coordinates
-            // The card is centered and fills most of the screen, so we map the mouse to the card face
-            // We'll use raycasting to check if the card was clicked and get the UV coordinates
             const mouse = {
                 x: (event.clientX / rect.width) * 2 - 1,
                 y: -(event.clientY / rect.height) * 2 + 1
             };
+            
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(card.children, false);
+            
             if (intersects.length > 0) {
                 const uv = intersects[0].uv;
                 if (!uv) return;
-                // Convert UV to canvas coordinates
+                
                 const canvasX = uv.x * cardCanvas.width;
                 const canvasY = (1 - uv.y) * cardCanvas.height;
-                // Check if click is inside any icon region
+                
                 for (const region of iconRegions) {
                     if (
                         canvasX >= region.x &&
@@ -452,15 +493,19 @@
                         canvasY >= region.y &&
                         canvasY <= region.y + region.size
                     ) {
-                        // Open corresponding link
-                        if (region.type === "email") {
-                            window.open(`mailto:${region.value}`, "_blank");
-                        } else if (region.type === "phone") {
-                            window.open(`tel:${region.value}`, "_blank");
-                        } else if (region.type === "website") {
-                            window.open(region.value, "_blank");
-                        } else if (region.type === "linkedin") {
-                            window.open(region.value, "_blank");
+                        switch(region.type) {
+                            case "email":
+                                window.open(`mailto:${region.value}`, "_blank");
+                                break;
+                            case "phone":
+                                window.open(`tel:${region.value}`, "_blank");
+                                break;
+                            case "website":
+                                window.open(region.value, "_blank");
+                                break;
+                            case "linkedin":
+                                window.open(region.value, "_blank");
+                                break;
                         }
                         break;
                     }
@@ -471,40 +516,45 @@
         function init3D() {
             // Create scene
             scene = new THREE.Scene();
-            scene.background = null; // Transparent background
+            scene.background = null;
             
-            // Create camera
-            // Make the FOV a bit smaller for a more immersive, close-up look
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 4.2; // Move camera closer to fill the screen
+            // Create camera with better positioning
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
             
-            // Create renderer
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            // Create renderer with enhanced settings
+            renderer = new THREE.WebGLRenderer({ 
+                alpha: true, 
+                antialias: true,
+                powerPreference: "high-performance"
+            });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000, 0);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.getElementById('ar-container').appendChild(renderer.domElement);
             
-            // Create card geometry and materials
+            // Create card
             createARCard();
             
-            // Add lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            // Enhanced lighting setup
+            const ambientLight = new THREE.AmbientLight(0x4da6ff, 0.6);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
             directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
             scene.add(directionalLight);
             
-            // Remove floating particles for a clean background
-            // createParticles(); <-- REMOVE THIS LINE
+            const pointLight = new THREE.PointLight(0x2d8cff, 0.8, 100);
+            pointLight.position.set(-10, -10, 10);
+            scene.add(pointLight);
             
-            // Start animation loop
+            // Start animation
             animate();
             
-            // Handle window resize
+            // Event listeners
             window.addEventListener('resize', onWindowResize, false);
-            
-            // Add touch/mouse interactions
             addInteractions();
         }
         
@@ -512,11 +562,11 @@
             requestAnimationFrame(animate);
             
             if (isAnimating && card) {
-                // Subtle rotation only
-                card.rotation.y += 0.003;
-                card.rotation.x = Math.sin(Date.now() * 0.001) * 0.04;
-                // No particles animation
-                card.position.y = 0;
+                // Smooth, professional rotation
+                card.rotation.y += 0.005;
+                card.rotation.x = Math.sin(Date.now() * 0.0008) * 0.05;
+                // Subtle floating motion
+                card.position.y = Math.sin(Date.now() * 0.001) * 0.02;
             }
             
             renderer.render(scene, camera);
@@ -525,9 +575,8 @@
         function addInteractions() {
             let isMouseDown = false;
             let mouseX = 0, mouseY = 0;
-            let previousMouseX = 0, previousMouseY = 0;
             
-            // Mouse events
+            // Enhanced mouse interactions
             renderer.domElement.addEventListener('mousedown', (event) => {
                 isMouseDown = true;
                 mouseX = event.clientX;
@@ -543,15 +592,15 @@
                     const deltaX = event.clientX - mouseX;
                     const deltaY = event.clientY - mouseY;
                     
-                    card.rotation.y += deltaX * 0.01;
-                    card.rotation.x += deltaY * 0.01;
+                    card.rotation.y += deltaX * 0.008;
+                    card.rotation.x += deltaY * 0.008;
                     
                     mouseX = event.clientX;
                     mouseY = event.clientY;
                 }
             });
             
-            // Touch events for mobile
+            // Touch events
             renderer.domElement.addEventListener('touchstart', (event) => {
                 if (event.touches.length === 1) {
                     isMouseDown = true;
@@ -569,8 +618,8 @@
                     const deltaX = event.touches[0].clientX - mouseX;
                     const deltaY = event.touches[0].clientY - mouseY;
                     
-                    card.rotation.y += deltaX * 0.01;
-                    card.rotation.x += deltaY * 0.01;
+                    card.rotation.y += deltaX * 0.008;
+                    card.rotation.x += deltaY * 0.008;
                     
                     mouseX = event.touches[0].clientX;
                     mouseY = event.touches[0].clientY;
@@ -609,7 +658,7 @@
             document.getElementById('error-message').style.display = 'block';
         }
         
-        // Initialize everything when page loads
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
             loadCardData();
             init3D();
